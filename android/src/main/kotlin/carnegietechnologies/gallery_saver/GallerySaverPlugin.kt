@@ -28,6 +28,7 @@ class GallerySaverPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         when (call.method) {
             "saveImage" -> gallerySaver?.checkPermissionAndSaveFile(call, result, MediaType.image)
             "saveVideo" -> gallerySaver?.checkPermissionAndSaveFile(call, result, MediaType.video)
+            "saveFile" -> gallerySaver?.checkPermissionAndSaveFile(call, result, MediaType.file)
             else -> result.notImplemented()
         }
     }

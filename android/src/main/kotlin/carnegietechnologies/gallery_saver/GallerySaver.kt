@@ -9,7 +9,7 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.PluginRegistry
 import kotlinx.coroutines.*
 
-enum class MediaType { image, video }
+enum class MediaType { image, video, file }
 /**
  * Class holding implementation of saving images and videos
  */
@@ -66,8 +66,10 @@ class GallerySaver internal constructor(private val activity: Activity) :
             val success = async(Dispatchers.IO) {
                 if (mediaType == MediaType.video) {
                     FileUtils.insertVideo(activity.contentResolver, filePath, albumName, toDcim)
-                } else {
+                } else if (mediaType == MediaType.image) {
                     FileUtils.insertImage(activity.contentResolver, filePath, albumName, toDcim)
+                } else {
+                    FileUtils.insertFile(activity.contentResolver, filePath, albumName, toDcim)
                 }
             }
             success.await()

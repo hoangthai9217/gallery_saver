@@ -14,6 +14,9 @@ import android.webkit.MimeTypeMap
 import androidx.exifinterface.media.ExifInterface
 import java.io.*
 import android.media.MediaMetadataRetriever
+import android.os.Build
+import androidx.annotation.RequiresApi
+import androidx.core.content.FileProvider
 
 /**
  * Core implementation of methods related to File manipulation
@@ -38,10 +41,10 @@ internal object FileUtils {
      * @return true if image was saved successfully
      */
     fun insertImage(
-        contentResolver: ContentResolver,
-        path: String,
-        folderName: String?,
-        toDcim: Boolean
+            contentResolver: ContentResolver,
+            path: String,
+            folderName: String?,
+            toDcim: Boolean
     ): Boolean {
         val file = File(path)
         val extension = MimeTypeMap.getFileExtensionFromUrl(file.toString())
@@ -71,8 +74,7 @@ internal object FileUtils {
 
         if (android.os.Build.VERSION.SDK_INT < 29) {
             values.put(MediaStore.Images.ImageColumns.DATA, imageFilePath)
-        }
-        else {
+        } else {
             values.put(MediaStore.Images.Media.DATE_TAKEN, System.currentTimeMillis())
             values.put(MediaStore.Images.Media.RELATIVE_PATH, directory + File.separator + folderName)
         }
@@ -136,8 +138,8 @@ internal object FileUtils {
         val matrix = Matrix()
         matrix.preRotate(rotationInDegrees.toFloat())
         val adjustedBitmap = Bitmap.createBitmap(
-            bitmap, 0, 0,
-            bitmap.width, bitmap.height, matrix, true
+                bitmap, 0, 0,
+                bitmap.width, bitmap.height, matrix, true
         )
         bitmap.recycle()
 
@@ -154,9 +156,9 @@ internal object FileUtils {
      * @param id              - path id
      */
     private fun storeThumbnail(
-        contentResolver: ContentResolver,
-        source: Bitmap,
-        id: Long
+            contentResolver: ContentResolver,
+            source: Bitmap,
+            id: Long
     ) {
 
         val matrix = Matrix()
@@ -167,10 +169,10 @@ internal object FileUtils {
         matrix.setScale(scaleX, scaleY)
 
         val thumb = Bitmap.createBitmap(
-            source, 0, 0,
-            source.width,
-            source.height, matrix,
-            true
+                source, 0, 0,
+                source.width,
+                source.height, matrix,
+                true
         )
 
         val values = ContentValues()
@@ -180,17 +182,18 @@ internal object FileUtils {
         values.put(MediaStore.Images.Thumbnails.WIDTH, thumb.width)
 
         val thumbUri = contentResolver.insert(
-            MediaStore.Images.Thumbnails.EXTERNAL_CONTENT_URI, values
+                MediaStore.Images.Thumbnails.EXTERNAL_CONTENT_URI, values
         )
 
         var outputStream: OutputStream? = null
-        try{
-        outputStream.use {
-            if (thumbUri != null) {
-                outputStream = contentResolver.openOutputStream(thumbUri)
+        try {
+            outputStream.use {
+                if (thumbUri != null) {
+                    outputStream = contentResolver.openOutputStream(thumbUri)
+                }
             }
-        }}catch (e: Exception){
-        //avoid crashing on devices that do not support thumb
+        } catch (e: Exception) {
+            //avoid crashing on devices that do not support thumb
         }
     }
 
@@ -217,8 +220,8 @@ internal object FileUtils {
     private fun getRotation(path: String): Int {
         val exif = ExifInterface(path)
         return exif.getAttributeInt(
-            ExifInterface.TAG_ORIENTATION,
-            ExifInterface.ORIENTATION_NORMAL
+                ExifInterface.TAG_ORIENTATION,
+                ExifInterface.ORIENTATION_NORMAL
         )
     }
 
@@ -249,11 +252,11 @@ internal object FileUtils {
      * @return true if video was saved successfully
      */
     fun insertVideo(
-        contentResolver: ContentResolver,
-        inputPath: String,
-        folderName: String?,
-        toDcim: Boolean,
-        bufferSize: Int = BUFFER_SIZE
+            contentResolver: ContentResolver,
+            inputPath: String,
+            folderName: String?,
+            toDcim: Boolean,
+            bufferSize: Int = BUFFER_SIZE
     ): Boolean {
         val inputFile = File(inputPath)
         val inputStream: InputStream?
@@ -286,7 +289,8 @@ internal object FileUtils {
                 val duration = durString!!.toInt()
                 values.put(MediaStore.Video.Media.DURATION, duration)
                 values.put(MediaStore.Video.VideoColumns.DATA, videoFilePath)
-            } catch(e: Exception) {}
+            } catch (e: Exception) {
+            }
         } else {
             values.put(MediaStore.Video.Media.RELATIVE_PATH, directory + File.separator + folderName)
         }
@@ -317,10 +321,145 @@ internal object FileUtils {
         return true
     }
 
+    // use ContentResolver to write file by Uri
+//    private fun copyFileToExternalStorage(destination: Uri) {
+//        val yourFile: File = ...
+//
+//        try {
+//            val outputStream = contentResolver.openOutputStream(destination) ?: return
+//            outputStream.write(yourFile.readBytes())
+//            outputStream.close()
+//        } catch (e: IOException) {
+//            e.printStackTrace()
+//        }
+//    }
+
+//    fun insertFile(
+//            contentResolver: ContentResolver,
+//            inputPath: String,
+//            folderName: String?,
+//            toDcim: Boolean,
+//            bufferSize: Int = BUFFER_SIZE
+//    ): Boolean {
+//        val yourFile = File(inputPath)
+//        var directory = Environment.DIRECTORY_DOWNLOADS
+//
+//        try {
+//            val outputStream = contentResolver.openOutputStream(destination) ?: return
+//            outputStream.write(yourFile.readBytes())
+//            outputStream.close()
+//        } catch (e: IOException) {
+//            e.printStackTrace()
+//        }
+//
+//    }
+
+    fun insertFile(
+            contentResolver: ContentResolver,
+            inputPath: String,
+            folderName: String?,
+            toDcim: Boolean,
+            bufferSize: Int = BUFFER_SIZE
+    ): Boolean {
+
+        val inputFile = File(inputPath)
+        val inputStream: InputStream?
+        val outputStream: OutputStream?
+
+        val extension = MimeTypeMap.getFileExtensionFromUrl(inputFile.toString())
+        val mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)
+
+////        val resolver = context.contentResolver
+//        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+//            val contentValues = ContentValues().apply {
+//                put(MediaStore.MediaColumns.DISPLAY_NAME, inputFile.name)
+//                put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
+//                // put(MediaStore.MediaColumns.SIZE, inputFile.size)
+//            }
+//            contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+//        } else {
+//            val authority = "context.packageName.provider"
+//             val DOWNLOAD_DIR = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+//            val destinyFile = File(DOWNLOAD_DIR, inputFile.name)
+//            FileProvider.getUriForFile(context, authority, destinyFile)
+//        }
+////                ?.also { downloadedUri ->
+////            resolver.openOutputStream(downloadedUri).use { outputStream ->
+////                val brr = ByteArray(1024)
+////                var len: Int
+////                val bufferedInputStream = BufferedInputStream(FileInputStream(downloadedFile.absoluteFile))
+////                while ((bufferedInputStream.read(brr, 0, brr.size).also { len = it }) != -1) {
+////                    outputStream?.write(brr, 0, len)
+////                }
+////                outputStream?.flush()
+////                bufferedInputStream.close()
+////            }
+////        }
+
+
+        var directory = Environment.DIRECTORY_DOWNLOADS
+
+        val albumDir = File(getAlbumFolderPath(folderName, MediaType.file, toDcim))
+        val videoFilePath = File(albumDir, inputFile.name).absolutePath
+
+        val values = ContentValues()
+        values.put(MediaStore.Downloads.DISPLAY_NAME, inputFile.name)
+        values.put(MediaStore.Downloads.MIME_TYPE, mimeType)
+        values.put(MediaStore.Downloads.TITLE, inputFile.name)
+//        values.put(MediaStore.Video.Media.DISPLAY_NAME, inputFile.name)
+//        values.put(MediaStore.Video.Media.MIME_TYPE, mimeType)
+        values.put(MediaStore.Downloads.DATE_ADDED, System.currentTimeMillis())
+        values.put(MediaStore.Downloads.DATE_MODIFIED, System.currentTimeMillis())
+        values.put(MediaStore.Downloads.DATE_TAKEN, System.currentTimeMillis())
+
+        if (android.os.Build.VERSION.SDK_INT < 29) {
+            try {
+                val r = MediaMetadataRetriever()
+                r.setDataSource(inputPath)
+                val durString = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                val duration = durString!!.toInt()
+                // values.put(MediaStore.Video.Media.DURATION, duration)
+                values.put(MediaStore.Downloads.DATA, videoFilePath)
+            } catch (e: Exception) {
+            }
+        } else {
+            values.put(MediaStore.Downloads.RELATIVE_PATH, directory + File.separator + folderName)
+        }
+
+        try {
+            val url = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+            } else {
+                TODO("VERSION.SDK_INT < Q")
+            }
+            inputStream = FileInputStream(inputFile)
+            if (url != null) {
+                outputStream = contentResolver.openOutputStream(url)
+                val buffer = ByteArray(bufferSize)
+                inputStream.use {
+                    outputStream?.use {
+                        var len = inputStream.read(buffer)
+                        while (len != EOF) {
+                            outputStream.write(buffer, 0, len)
+                            len = inputStream.read(buffer)
+                        }
+                    }
+                }
+            }
+        } catch (fnfE: FileNotFoundException) {
+            Log.e("GallerySaver", fnfE.message ?: fnfE.toString())
+            return false
+        } catch (e: Exception) {
+            Log.e("GallerySaver", e.message ?: e.toString())
+            return false
+        }
+        return true
+    }
+
     private fun getAlbumFolderPath(
-        folderName: String?, 
-        mediaType: MediaType,
-        toDcim: Boolean
+            folderName: String?,
+            mediaType: MediaType,
+            toDcim: Boolean
     ): String {
         var albumFolderPath: String = Environment.getExternalStorageDirectory().path
         if (toDcim && android.os.Build.VERSION.SDK_INT < 29) {
@@ -334,11 +473,11 @@ internal object FileUtils {
                 baseFolderName = Environment.DIRECTORY_DCIM;
             }
             createDirIfNotExist(
-                Environment.getExternalStoragePublicDirectory(baseFolderName).path
+                    Environment.getExternalStoragePublicDirectory(baseFolderName).path
             ) ?: albumFolderPath
         } else {
             createDirIfNotExist(albumFolderPath + File.separator + folderName)
-                ?: albumFolderPath
+                    ?: albumFolderPath
         }
         return albumFolderPath
     }
