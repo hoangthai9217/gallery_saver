@@ -11,6 +11,7 @@ class GallerySaver {
   static const String channelName = 'gallery_saver';
   static const String methodSaveImage = 'saveImage';
   static const String methodSaveVideo = 'saveVideo';
+  static const String methodSaveFile = 'saveFile';
 
   static const String pleaseProvidePath = 'Please provide valid file path.';
   static const String fileIsNotVideo = 'File on path is not a video.';
@@ -91,7 +92,7 @@ class GallerySaver {
     }
 
     bool? result = await _channel.invokeMethod(
-      methodSaveImage,
+      methodSaveFile,
       <String, dynamic>{'path': path, 'albumName': albumName, 'toDcim': toDcim},
     );
     if (tempFile != null) {
