@@ -75,6 +75,32 @@ class GallerySaver {
     return result;
   }
 
+  static Future<bool?> saveFile(
+    String path, {
+    String? albumName,
+    bool toDcim = false,
+    Map<String, String>? headers,
+  }) async {
+    File? tempFile;
+    if (path.isEmpty) {
+      throw ArgumentError(pleaseProvidePath);
+    }
+    if (!isLocalFilePath(path)) {
+      tempFile = await _downloadFile(path, headers: headers);
+      path = tempFile.path;
+    }
+
+    bool? result = await _channel.invokeMethod(
+      methodSaveImage,
+      <String, dynamic>{'path': path, 'albumName': albumName, 'toDcim': toDcim},
+    );
+    if (tempFile != null) {
+      tempFile.delete();
+    }
+
+    return result;
+  }
+
   static Future<File> _downloadFile(String url,
       {Map<String, String>? headers}) async {
     print(url);
